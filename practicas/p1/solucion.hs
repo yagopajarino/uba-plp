@@ -61,3 +61,7 @@ takeHastaMultiploDe10 (x:xs) =
   if esMultiploDe10 x
     then []
     else x : takeHastaMultiploDe10 xs
+
+-- Ejercicio 3
+paresDeNat::[(Int,Int)]
+paresDeNat = [(x,n-x) | n <- [0..], x <- [0..n]]
