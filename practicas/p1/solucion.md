@@ -174,7 +174,7 @@ Busco generar la lista infinita de todos los pares de naturales. Para esto voy a
 
 ```hs
 paresDeNat::[(Int,Int)]
-paresDeNat = [(x,y) | n <- [0..], x <- n, y <- (n-x)]
+paresDeNat = [(x,n-x) | n <- [0..], x <- [0..n]]
 ```
 
 Probando en ghci
@@ -183,3 +183,168 @@ Probando en ghci
 ghci> take 20 paresDeNat
 [(0,0),(0,1),(1,0),(0,2),(1,1),(2,0),(0,3),(1,2),(2,1),(3,0),(0,4),(1,3),(2,2),(3,1),(4,0),(0,5),(1,4),(2,3),(3,2),(4,1)]
 ````
+
+## Ejercicio 5
+
+La definición
+
+```hs
+pitagóricas :: [(Integer, Integer, Integer)]
+pitagóricas = [(a, b, c) | a <- [1..], b <-[1..], c <- [1..], a^2 + b^2 == c^2]
+```
+No es útil porque la ejecución de haskell va a fijar a = 1, b = 1 y luego va a usar todos los posibles valores de c entre 1 e infinito para armar las triplas. Como para a = 1, b = 1 no existe ningún valor entero de c que cumpla la restricción, no va a devolver ningún resultado.
+
+Tener más de un generador de enteros infinitos en una definición de listas por comprensión no es una buena idea.
+
+```hs
+pitagóricas :: [(Integer, Integer, Integer)]
+pitagóricas = [(a,b,c) | c <- [1..], a <- [1..c], b <- [a..c], a^2 + b^2 == c^2]
+```
+
+## Ejercicio 6
+
+```hs
+listasQueSuman :: Int -> [[Int]]
+listasQueSuman 0 = [[]]
+listasQueSuman n | n > 0 =
+                [x : xs | x <- [1..n], xs <- listasQueSuman (n-x)]
+```
+
+## Ejercicio 7
+```hs
+listasDeEnteros :: [[Int]]
+listasDeEnteros = concatMap listasQueSuman [1..]
+````
+
+## Ejercicio 8
+
+### I
+
+```hs
+menosDe5Letras :: [String] -> [String]
+menosDe5Letras = filter (\palabra -> length palabra < 5)
+
+getAprobados :: [Int] -> [Bool]
+getAprobados = map (\nota -> nota > 6)
+
+paresAlCuadrado :: [Int] -> [Int]
+paresAlCuadrado = map (^2) . filter even
+```
+
+### II
+
+```hs
+sumf :: (Foldable t, Num a) => t a -> a
+sumf = foldr (+) 0
+
+elemf :: (Foldable t, Eq a) => a -> t a -> Bool
+elemf x = foldr (\y rec -> y == x || rec) False
+
+(++) :: [a] -> [a] -> [a]
+(++) xs = foldr (:) xs
+
+filterf :: (a -> Bool) -> [a] -> [a]
+filterf p = foldr (\x rec -> if p x then x : rec else rec) []
+
+mapf :: (a -> b) -> [a] -> [b]
+mapf f = foldr (\x rec -> f x : rec) []
+````
+
+### III
+
+```hs
+mejorSegún :: (a -> a -> Bool) -> [a] -> a
+mejorSegún p = foldr1 (\x rec -> if p x rec then x else rec)
+```
+
+## Ejercicio 10
+
+```hs
+sacarUna :: Eq a => a -> [a] -> [a]
+sacarUna n = recr (\x xs rec -> if x == n then xs else x:rec) []
+```
+
+No se puede usar foldr porque necesitamos la cola de la lista para devolver en el caso que hayamos encontrado el elemento que queremos sacar. En foldr solamente podemos acceder al elemento actual y al resultado recursivo.
+
+```hs
+insertarOrdenado :: Ord a => a -> [a] -> [a]
+insertarOrdenado n = recr (\x xs rec -> if n < x then n : x : xs else x : rec) []
+```
+
+## Ejercicio 11
+
+`elementosEnPosicionesPares` usa esquema de recursión global dado que en el llamado recursivo lo hace sobre un argumento calculado sobre `xs`
+
+`entrelazar` es estructural porque solo accede a la cola de a lista en el llamado recursivo y en el resto de la función solo lo combina con calculos sobre `x`. La rescribo usando `foldr`
+
+```hs
+entrelazar :: [a] -> [a] -> [a]
+entrelazar = foldr (\x rec -> \ys -> if null ys then x : rec [] else x : head ys : rec (tail ys)) id
+````
+
+`slowSort` hace dos llamados recursivos: global
+
+`sufijos` es primitiva, accede a la cola de la lista fuera del llamado recursivo. La reescribo usando recr
+
+```hs
+sufijos :: [a] -> [[a]]
+sufijos = recr (\x xs rec -> (x:xs) : rec) [[]]
+````
+
+## Ejercicio 12
+
+### I
+```hs
+mapPares :: (a -> b -> c) -> [(a, b)] -> [c]
+mapPares f = map (uncurry f)
+```
+
+### II
+```hs
+armarPares :: [a] -> [b] -> [(a,b)]
+armarPares = foldr paso (const [])
+    where
+        paso = \x rec -> \ys -> case ys of
+                []      -> []
+                (y:ys') -> (x,y) : rec ys'
+```
+
+### III
+
+```hs
+mapDoble :: (a -> b -> c) -> [a] -> [b] -> [c]
+mapDoble f xs ys = mapPares f (armarPares xs ys)
+```
+
+Chequeo que hace los mismo que zipWith
+
+```hs
+ghci> zipWith (+) [1,2,3,4] [1,1,1,1]
+[2,3,4,5]
+ghci> mapDoble (+) [1,2,3,4] [1,1,1,1]
+[2,3,4,5]
+````
+
+## Ejercicio 14
+
+```hs
+foldNat ::  (Int -> b -> b)
+            -> b
+            -> Int
+            -> b
+foldNat fRec fBase x = case x of
+                            0 -> fBase
+                            n -> fRec n (foldNat fRec fBase (n-1))
+
+potencia :: Int -> Int -> Int
+potencia n = foldNat (\i rec -> n * rec) 1
+```
+
+## Ejercicio 15
+```hs
+genLista :: a -> (a -> a) -> Integer -> [a]
+genLista inicial step n = foldNat (\_ rec -> \x -> x : rec (step x)) (const []) n inicial
+
+desdeHasta :: Integer -> Integer -> [Integer]
+desdeHasta x y = genLista x (+1) (y-x)
+```
