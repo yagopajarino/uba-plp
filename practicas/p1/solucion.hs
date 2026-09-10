@@ -168,3 +168,26 @@ genLista inicial step n = foldNat (\_ rec -> \x -> x : rec (step x)) (const []) 
 
 desdeHasta :: Integer -> Integer -> [Integer]
 desdeHasta x y = genLista x (+1) (y-x)
+
+-- Ejercicio 16
+
+data Polinomio a = X
+  | Cte a
+  | Suma (Polinomio a) (Polinomio a)
+  | Prod (Polinomio a) (Polinomio a)
+
+recPolinomio :: b                           -- X
+            -> (a -> b)                     -- Cte
+            -> (b -> b -> b)                -- Suma
+            -> (b -> b -> b)                -- Prod
+            -> Polinomio a                  -- Entrada
+            -> b                            -- Resultado
+recPolinomio fx fcte fsuma fprod p = case p of
+                                        X           -> fx
+                                        Cte n       -> fcte n
+                                        Suma i d    -> fsuma (rec i) (rec d)
+                                        Prod i d    -> fprod (rec i) (rec d)
+                                        where rec = recPolinomio fx fcte fsuma fprod
+
+evaluar :: Num a => a -> Polinomio a -> a
+evaluar x = recPolinomio x id (+) (*)
