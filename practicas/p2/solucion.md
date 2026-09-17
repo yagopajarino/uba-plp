@@ -310,3 +310,7 @@ length (map f (x:xs))
 
 Luego vale el paso inductivo y por inducción estructural vale la propiedad para toda lista
 ```
+
+## Ejercicio 6
+
+Ver [2.6](./2.6.pdf)
